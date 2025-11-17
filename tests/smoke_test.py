@@ -7,4 +7,6 @@ from main import app
 def test_app_starts():
     client = TestClient(app)
     response = client.get("/")
-    assert response.status_code in (200, 404)
+    # Перевіряй конкретно те, що очікуєш
+    assert response.status_code == 200
+    assert response.json() == {"message": "Далі бога нема."}
