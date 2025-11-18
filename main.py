@@ -53,6 +53,9 @@ class UserPasswordChange(BaseModel):
     old_password: str
     new_password: str
 
+class UserPasswordConfirm(BaseModel):
+    password: str
+
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -180,6 +183,27 @@ async def update_user_me(
         user_data["avatar_url"] = update_data.avatar_url
 
     return user_data
+
+
+@users_router.delete("/me", status_code=status.HTTP_200_OK)
+async def delete_user_me(
+        confirm_data: UserPasswordConfirm,
+        current_user: Annotated[dict, Depends(get_current_user)]
+):
+    username = current_user["username"]
+    user_data = USERS_DB.get(username)
+
+    # Перевіряємо пароль перед видаленням
+    if not user_data or not verify_password(confirm_data.password, user_data["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password",
+        )
+
+    # Якщо пароль ок — видаляємо
+    del USERS_DB[username]
+
+    return {"message": "User deleted successfully"}
 
 
 @users_router.post("/me/password", status_code=status.HTTP_200_OK)
