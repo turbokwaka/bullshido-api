@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+import re
 
 app = FastAPI(title="Bullshido API")
 
@@ -38,7 +39,7 @@ class UserBase(BaseModel):
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
-    password: str
+    password: str = Field(min_length=3, max_length=30)
 
 
 class User(UserBase):
@@ -49,9 +50,11 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     avatar_url: Optional[str] = None
 
+
 class UserPasswordChange(BaseModel):
     old_password: str
-    new_password: str
+    new_password: str = Field(min_length=3, max_length=30)
+
 
 class UserPasswordConfirm(BaseModel):
     password: str
@@ -59,6 +62,16 @@ class UserPasswordConfirm(BaseModel):
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def validate_password_complexity(password: str):
+    pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&_\-]*$"
+
+    if not re.match(pattern, password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one uppercase letter, one lowercase letter, and one digit.",
+        )
 
 
 def get_password_hash(password):
@@ -130,6 +143,8 @@ async def login_for_access_token(
 
 @auth_router.post("/register", response_model=Token)
 async def register_user(form_data: UserCreate):
+    validate_password_complexity(form_data.password)
+
     if form_data.username in USERS_DB:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -165,17 +180,15 @@ async def read_users_me(current_user: Annotated[dict, Depends(get_current_user)]
 
 @users_router.patch("/me", response_model=User)
 async def update_user_me(
-        update_data: UserUpdate,
-        current_user: Annotated[dict, Depends(get_current_user)],
+    update_data: UserUpdate,
+    current_user: Annotated[dict, Depends(get_current_user)],
 ):
     current_username = current_user["username"]
     user_data = USERS_DB[current_username]
 
     if update_data.username and update_data.username != current_username:
         if update_data.username in USERS_DB:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, "Username already taken"
-            )
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Username already taken")
         USERS_DB[update_data.username] = USERS_DB.pop(current_username)
         user_data["username"] = update_data.username
 
@@ -187,20 +200,20 @@ async def update_user_me(
 
 @users_router.delete("/me", status_code=status.HTTP_200_OK)
 async def delete_user_me(
-        confirm_data: UserPasswordConfirm,
-        current_user: Annotated[dict, Depends(get_current_user)]
+    confirm_data: UserPasswordConfirm,
+    current_user: Annotated[dict, Depends(get_current_user)],
 ):
     username = current_user["username"]
     user_data = USERS_DB.get(username)
 
-    # Перевіряємо пароль перед видаленням
-    if not user_data or not verify_password(confirm_data.password, user_data["hashed_password"]):
+    if not user_data or not verify_password(
+        confirm_data.password, user_data["hashed_password"]
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect password",
         )
 
-    # Якщо пароль ок — видаляємо
     del USERS_DB[username]
 
     return {"message": "User deleted successfully"}
@@ -208,9 +221,10 @@ async def delete_user_me(
 
 @users_router.post("/me/password", status_code=status.HTTP_200_OK)
 async def change_password(
-        password_data: UserPasswordChange,
-        current_user: Annotated[dict, Depends(get_current_user)],
+    password_data: UserPasswordChange,
+    current_user: Annotated[dict, Depends(get_current_user)],
 ):
+    validate_password_complexity(password_data.new_password)
     user_data = USERS_DB[current_user["username"]]
 
     if not verify_password(password_data.old_password, user_data["hashed_password"]):
@@ -222,6 +236,7 @@ async def change_password(
     user_data["hashed_password"] = get_password_hash(password_data.new_password)
 
     return {"message": "Password updated successfully"}
+
 
 app.include_router(auth_router)
 app.include_router(users_router)
