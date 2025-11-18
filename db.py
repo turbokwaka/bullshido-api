@@ -1,0 +1,2 @@
+USERS_DB = {}
+VIDEOS_DB = {}

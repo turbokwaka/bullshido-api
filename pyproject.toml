@@ -12,7 +12,8 @@ dependencies = [
     "passlib",
     "python-multipart",
     "uvicorn",
-    "pydantic[email]"
+    "pydantic[email]",
+    "pydantic-settings"
 ]
 
 [project.optional-dependencies]
