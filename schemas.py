@@ -78,3 +78,9 @@ class VideoResponse(BaseModel):
     video_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     created_at: datetime
+
+
+class VideoUpdateStatus(BaseModel):
+    status: VideoStatus
+    video_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None

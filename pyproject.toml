@@ -13,7 +13,13 @@ dependencies = [
     "python-multipart",
     "uvicorn",
     "pydantic[email]",
-    "pydantic-settings"
+    "pydantic-settings",
+    "alembic",
+    "sqlmodel",
+    "asyncpg",
+    "arq",
+    "redis",
+    "arq"
 ]
 
 [project.optional-dependencies]
