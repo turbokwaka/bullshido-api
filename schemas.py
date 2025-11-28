@@ -6,9 +6,9 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class VoicePreset(str, Enum):
-    rogue = "rogue"
-    knight = "knight"
-    wizard = "wizard"
+    af_heart = "af_heart"
+    af_bella = "af_bella"
+    af_nicole = "af_nicole"
 
 
 class SubtitlePosition(str, Enum):

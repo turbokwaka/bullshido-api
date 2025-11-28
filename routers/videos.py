@@ -34,9 +34,9 @@ async def create_video_generation_task(
     new_video = Video(
         user_id=current_user.id,
         text=video_request.text,
-        voice=video_request.voice,
+        voice=video_request.voice.value,
         subtitle_style_id=video_request.subtitle_style_id,
-        subtitle_position=video_request.subtitle_position,
+        subtitle_position=video_request.subtitle_position.value,
         status=VideoStatus.queued,
         created_at=datetime.now(timezone.utc),
     )
@@ -49,9 +49,9 @@ async def create_video_generation_task(
         "generate_video",
         video_id=new_video.id,
         text=new_video.text,
-        voice=new_video.voice,
+        voice=new_video.voice.value,
         subtitle_style_id=new_video.subtitle_style_id,
-        subtitle_position=new_video.subtitle_position,
+        subtitle_position=new_video.subtitle_position.value,
     )
 
     return VideoResponse(
