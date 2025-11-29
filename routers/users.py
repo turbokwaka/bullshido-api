@@ -1,7 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import select
+from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from db import get_session
@@ -12,11 +11,11 @@ from schemas import (
     UserPasswordConfirm,
     UserPasswordChange,
 )
-from security import (
-    get_current_user,
-    verify_password,
-    validate_password_complexity,
-    get_password_hash,
+from security import get_current_user
+from services.users_service import (
+    update_user_me_service,
+    delete_user_me_service,
+    change_password_service,
 )
 
 users_router = APIRouter(
@@ -36,26 +35,7 @@ async def update_user_me(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    if update_data.username and update_data.username != current_user.username:
-        statement = select(User).where(User.username == update_data.username)
-        result = await session.exec(statement)
-        existing_user = result.first()
-
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken"
-            )
-
-        current_user.username = update_data.username
-
-    if update_data.avatar_url:
-        current_user.avatar_url = update_data.avatar_url
-
-    session.add(current_user)
-    await session.commit()
-    await session.refresh(current_user)
-
-    return current_user
+    return await update_user_me_service(update_data, current_user, session)
 
 
 @users_router.delete("/me", status_code=status.HTTP_200_OK)
@@ -64,16 +44,7 @@ async def delete_user_me(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    if not verify_password(confirm_data.password, current_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password",
-        )
-
-    await session.delete(current_user)
-    await session.commit()
-
-    return {"message": "User deleted successfully"}
+    return await delete_user_me_service(confirm_data, current_user, session)
 
 
 @users_router.post("/me/password", status_code=status.HTTP_200_OK)
@@ -82,17 +53,4 @@ async def change_password(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    if not verify_password(password_data.old_password, current_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect old password",
-        )
-
-    validate_password_complexity(password_data.new_password)
-
-    current_user.hashed_password = get_password_hash(password_data.new_password)
-
-    session.add(current_user)
-    await session.commit()
-
-    return {"message": "Password updated successfully"}
+    return await change_password_service(password_data, current_user, session)
