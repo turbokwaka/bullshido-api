@@ -1,18 +1,22 @@
-import uuid
-from datetime import datetime, timezone
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, status, Query, Header
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from config import settings
-from db import VIDEOS_DB
+from db import get_session
+from models import User
 from schemas import (
     VideoResponse,
     VideoCreateRequest,
-    VideoStatus,
+    VideoUpdateStatus,
 )
-from security import (
-    get_current_user,
+from security import get_current_user
+from services.videos_service import (
+    create_video_generation_task_service,
+    get_video_gallery_service,
+    get_my_videos_history_service,
+    get_video_status_service,
+    update_video_status_service,
 )
 
 videos_router = APIRouter(prefix="/videos", tags=["Videos"])
@@ -23,77 +27,53 @@ videos_router = APIRouter(prefix="/videos", tags=["Videos"])
 )
 async def create_video_generation_task(
     video_request: VideoCreateRequest,
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    video_id = str(uuid.uuid4())
-
-    new_video = {
-        "id": video_id,
-        "author_username": current_user["username"],
-        "text": video_request.text,
-        "voice": video_request.voice,
-        "subtitle_style_id": video_request.subtitle_style_id,
-        "subtitle_position": video_request.subtitle_position,
-        "status": VideoStatus.queued,
-        "video_url": None,
-        "created_at": datetime.now(timezone.utc),
-    }
-
-    VIDEOS_DB[video_id] = new_video
-    return new_video
+    return await create_video_generation_task_service(
+        video_request, current_user, session
+    )
 
 
-@videos_router.get("/gallery", response_model=List[VideoResponse])
+@videos_router.get(
+    "/gallery",
+    response_model=List[VideoResponse],
+    dependencies=[Depends(get_current_user)],
+)
 async def get_video_gallery(
-    current_user: Annotated[dict, Depends(get_current_user)],
-    skip: int = 0,
-    limit: int = 10,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
 ):
-    completed_videos = [
-        v for v in VIDEOS_DB.values() if v["status"] == VideoStatus.completed
-    ]
-    return completed_videos[skip : skip + limit]
+    return await get_video_gallery_service(session, skip, limit)
 
 
 @videos_router.get("/history", response_model=List[VideoResponse])
 async def get_my_videos_history(
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
 ):
-    username = current_user["username"]
-
-    my_videos = [v for v in VIDEOS_DB.values() if v["author_username"] == username]
-
-    my_videos.sort(key=lambda x: x["created_at"], reverse=True)
-
-    return my_videos
+    return await get_my_videos_history_service(current_user, session, skip, limit)
 
 
 @videos_router.get("/{video_id}", response_model=VideoResponse)
 async def get_video_status(
-    video_id: str, current_user: Annotated[dict, Depends(get_current_user)]
-):
-    video = VIDEOS_DB.get(video_id)
-    if not video:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Video not found")
-
-    return video
-
-
-@videos_router.patch("/{video_id}/complete_simulation")
-async def worker_complete_task(
     video_id: str,
-    video_url: str,
-    thumbnail_url: str,
-    x_worker_token: Annotated[str, Header()],
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    if x_worker_token != settings.WORKER_SECRET_TOKEN:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not authorized worker")
+    return await get_video_status_service(video_id, current_user, session)
 
-    video = VIDEOS_DB.get(video_id)
-    if not video:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-    video["status"] = VideoStatus.completed
-    video["video_url"] = video_url
-    video["thumbnail_url"] = thumbnail_url
-    return {"message": "Доббі хоче бути вільним.", "video": video}
+@videos_router.patch("/{video_id}/status", response_model=VideoResponse)
+async def update_video_status(
+    video_id: str,
+    update_data: VideoUpdateStatus,
+    x_worker_token: Annotated[str, Header()],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    return await update_video_status_service(
+        video_id, update_data, x_worker_token, session
+    )

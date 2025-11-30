@@ -6,9 +6,9 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class VoicePreset(str, Enum):
-    rogue = "rogue"
-    knight = "knight"
-    wizard = "wizard"
+    af_heart = "af_heart"
+    af_bella = "af_bella"
+    af_nicole = "af_nicole"
 
 
 class SubtitlePosition(str, Enum):
@@ -78,3 +78,9 @@ class VideoResponse(BaseModel):
     video_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     created_at: datetime
+
+
+class VideoUpdateStatus(BaseModel):
+    status: VideoStatus
+    video_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None

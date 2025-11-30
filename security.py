@@ -6,9 +6,12 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from config import settings
-from db import USERS_DB
+from db import get_session
+from models import User
 from schemas import TokenData
 
 pwd_context = CryptContext(schemes=["bcrypt"])
@@ -46,7 +49,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -63,7 +69,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     except JWTError:
         raise credentials_exception
 
-    user = USERS_DB.get(token_data.username)
+    statement = select(User).where(User.username == token_data.username)
+    result = await session.exec(statement)
+    user = result.first()
+
     if user is None:
         raise credentials_exception
 
