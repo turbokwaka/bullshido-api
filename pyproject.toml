@@ -15,17 +15,18 @@ dependencies = [
     "pydantic[email]",
     "pydantic-settings",
     "alembic",
-    "sqlmodel",
-    "asyncpg",
     "arq",
+    "asyncpg",
     "redis",
-    "arq"
+    "sqlalchemy",
+    "sqlmodel"
 ]
 
 [project.optional-dependencies]
 dev = [
     "ruff",
     "pre-commit",
+    "pytest-asyncio",
     "pytest",
 ]
 
