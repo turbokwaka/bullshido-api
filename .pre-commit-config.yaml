@@ -10,7 +10,7 @@ repos:
   - repo: local
     hooks:
       - id: pytest
-        name: pytest smoke tests
+        name: kakauko v dupie
         entry: pytest -q
         language: system
         pass_filenames: false
