@@ -10,9 +10,15 @@ repos:
   - repo: local
     hooks:
       - id: pytest
-        name: pytest smoke tests
+        name: kakauko v dupie
         entry: pytest -q
         language: system
         pass_filenames: false
         args: [ "tests" ]
+        always_run: true
+      - id: mutmut v dupie
+        name: mutation testing
+        entry: mutmut run
+        language: system
+        pass_filenames: false
         always_run: true
