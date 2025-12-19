@@ -1,25 +1,28 @@
 ENV_FILE = .env
 
+deploy:
+	docker compose --env-file $(ENV_FILE) up -d --build
+	docker image prune -f
 up:
-	sudo docker compose --env-file $(ENV_FILE) up -d
+	docker compose --env-file $(ENV_FILE) up -d
 
 down:
-	sudo docker compose --env-file $(ENV_FILE) down
+	docker compose --env-file $(ENV_FILE) down
 
 logs:
-	sudo docker compose --env-file $(ENV_FILE) logs -f
+	docker compose --env-file $(ENV_FILE) logs -f
 
 logs-api:
-	sudo docker compose --env-file $(ENV_FILE) logs -f api
+	docker compose --env-file $(ENV_FILE) logs -f api
 
 restart:
-	sudo docker compose --env-file $(ENV_FILE) restart
+	docker compose --env-file $(ENV_FILE) restart
 
 restart-api:
-	sudo docker compose --env-file $(ENV_FILE) restart api
+	docker compose --env-file $(ENV_FILE) restart api
 
 ps:
-	sudo docker compose --env-file $(ENV_FILE) ps
+	docker compose --env-file $(ENV_FILE) ps
 
 clean:
-	sudo docker compose --env-file $(ENV_FILE) down -v
+	docker compose --env-file $(ENV_FILE) down -v
