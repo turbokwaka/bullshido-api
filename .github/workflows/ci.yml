@@ -1,0 +1,49 @@
+name: CI Checks
+
+on:
+  pull_request:
+    branches: [ "master", "main" ]
+  push:
+    branches-ignore: [ "master", "main" ]
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install uv
+          uv pip install --system ".[dev]" python-dotenv
+
+      - name: Run Ruff Linter
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run Tests
+        env:
+          SECRET_KEY: "ci_test_key"
+          WORKER_SECRET_TOKEN: "ci_test_token"
+          ALGORITHM: "HS256"
+          ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+          POSTGRES_USER: "ci"
+          POSTGRES_PASSWORD: "ci"
+          POSTGRES_DB: "ci"
+          POSTGRES_HOST: "localhost"
+          POSTGRES_PORT: "5432"
+          REDIS_HOST: "localhost"
+          REDIS_PORT: "6379"
+          REDIS_PASSWORD: "ci"
+          MINIO_ROOT_USER: "ci"
+          MINIO_ROOT_PASSWORD: "ci"
+          MINIO_PORT: "9000"
+
+        run: |
+          pytest --ignore=tests/test_e2e.py --ignore=tests/test_videos_integration.py
