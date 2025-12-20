@@ -50,7 +50,7 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     deploy:
       resources:
         limits:
@@ -75,7 +75,7 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
-      - ./redisdata:/data
+      - redis_data:/data
     deploy:
       resources:
         limits:
@@ -99,7 +99,7 @@ services:
       - "${MINIO_PORT}:9000"
       - "${MINIO_PORT_CONSOLE}:9001"
     volumes:
-      - ./minio_data:/data
+      - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -115,3 +115,7 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
