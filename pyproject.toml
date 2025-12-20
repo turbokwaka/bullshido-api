@@ -30,7 +30,8 @@ dev = [
     "pytest",
     "pytest-sugar",
     "aiosqlite",
-    "mutmut"
+    "mutmut",
+    "commitizen"
 ]
 
 [tool.ruff]
@@ -106,3 +107,9 @@ exclude = [
     "redisdata*",
     "minio_data*"
 ]
+
+[tool.commitizen]
+version_provider = "pep621"
+tag_format = "v$version"
+update_changelog_on_bump = true
+major_version_zero = true

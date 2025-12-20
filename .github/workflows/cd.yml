@@ -10,9 +10,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      - name: Set up env
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > docker/.env
+          echo "env file created"
       - name: Restart Application
         run: |
           echo "Lets hope for the best..."
+          cd docker
           make deploy
           echo "Deployed successfully!"
