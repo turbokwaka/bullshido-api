@@ -14,6 +14,13 @@ jobs:
         run: |
           echo "${{ secrets.ENV_FILE }}" > docker/.env
           echo "env file created"
+      - name: Create data directories
+        run: |
+          mkdir -p docker/pgdata
+          mkdir -p docker/redisdata
+          mkdir -p docker/minio_data
+          chmod 777 docker/pgdata docker/redisdata docker/minio_data
+          echo "data directories created"
       - name: Restart Application
         run: |
           echo "Lets hope for the best..."
