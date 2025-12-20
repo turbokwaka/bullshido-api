@@ -1,0 +1,21 @@
+name: Deploy to Home Server
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up environment
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > docker/.env
+          echo "env file created"
+      - name: Restart Application
+        run: |
+          echo "Lets hope for the best..."
+          cd docker && make deploy
+          echo "Deployed successfully!"
